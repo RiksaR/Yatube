@@ -3,6 +3,12 @@ env/
 venv/
 .venv
 .venv/
+.vscode
+.vscode/
+.media
+.media/
+.htmlcov
+htmlcov/
 
 __pycache__/
 *.py[cod]
@@ -11,12 +17,19 @@ __pycache__/
 .DS_Store
 .AppleDouble
 .LSOverride
+.vscode
 
 *.sublime-project
 *.sublime-workspace
 
 static/
 posts/static/
-media/
 
 db.sqlite3
+.coverage
+
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover 
