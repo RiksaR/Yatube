@@ -51,12 +51,10 @@ def new_post(request):
 
 def profile(request, username):
     author = get_object_or_404(User, username=username)
-    followers = Follow.objects.filter(author=author).count()
-    following = Follow.objects.filter(user=author).count()
-    follow = Follow.objects.filter(
-        user=request.user.id,
-        author=author.id
-        ).exists()
+    follow = request.user.is_authenticated and Follow.objects.filter(
+        user=request.user,
+        author=author,
+    ).exists()
     posts = author.posts.all()
     paginator = Paginator(posts, 10)
     page_number = request.GET.get('page')
@@ -69,8 +67,6 @@ def profile(request, username):
             'page': page,
             'author': author,
             'paginator': paginator,
-            'followers': followers,
-            'following': following,
             'follow': follow,
         }
     )
@@ -82,7 +78,6 @@ def post_view(request, username, post_id):
         id=post_id,
         author__username=username,
     )
-    author = post.author
     comments = post.comments.all()
     form = CommentForm()
     return render(
@@ -90,7 +85,6 @@ def post_view(request, username, post_id):
         'post.html',
         {
             'post': post,
-            'author': author,
             'form': form,
             'comments': comments,
         }
@@ -172,18 +166,17 @@ def profile_follow(request, username):
     author = get_object_or_404(User, username=username)
     if request.user.username != username:
         Follow.objects.get_or_create(
-            user_id=request.user.id,
-            author_id=author.id,
+            user=request.user,
+            author=author,
         )
     return redirect('profile', username)
 
 
 @login_required
 def profile_unfollow(request, username):
-    follow = get_object_or_404(
+    get_object_or_404(
         Follow,
         author__username=username,
         user=request.user
-    )
-    follow.delete()
+    ).delete()
     return redirect('profile', username=username)

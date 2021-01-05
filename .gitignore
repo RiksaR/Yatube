@@ -6,7 +6,7 @@ venv/
 .vscode
 .vscode/
 .media
-.media/
+media/
 .htmlcov
 htmlcov/
 

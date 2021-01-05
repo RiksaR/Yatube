@@ -9,22 +9,22 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from posts.models import Group, Post, User, Follow, Comment
-from posts.tests.test_forms import URL_FOR_LOGIN
+from posts.tests.test_forms import URL_LOGIN
 
-USERNAME = 'testuser'
-USERNAME2 = 'testuser2'
-GROUP_TITLE_FOR_POST = 'test title post'
-GROUP_SLUG_FOR_POST = 'test_slug_post'
-GROUP_DESCRIPTION_FOR_POST = 'test description post'
+USERNAME_1 = 'testuser'
+USERNAME_2 = 'testuser2'
+GROUP_TITLE = 'test title post'
+GROUP_SLUG = 'test_slug_post'
+GROUP_DESCRIPTION = 'test description post'
 POST_TEXT = 'test text'
 
-URL_FOR_INDEX = reverse('index')
-URL_FOR_GROUP = reverse('group', args=(GROUP_SLUG_FOR_POST,))
-URL_FOR_NEW_POST = reverse('new_post')
-URL_FOR_PROFILE = reverse('profile', args=(USERNAME,))
-URL_FOR_FOLLOW = reverse('follow_index')
-URL_FOR_PROFILE_FOLLOW = reverse('profile_follow', args=(USERNAME,))
-URL_FOR_PROFILE_UNFOLLOW = reverse('profile_unfollow', args=(USERNAME,))
+URL_INDEX = reverse('index')
+URL_GROUP = reverse('group', args=(GROUP_SLUG,))
+URL_NEW_POST = reverse('new_post')
+URL_PROFILE_1 = reverse('profile', args=(USERNAME_1,))
+URL_FOLLOW_2 = reverse('follow_index')
+URL_PROFILE_FOLLOW_2_TO_1 = reverse('profile_follow', args=(USERNAME_1,))
+URL_PROFILE_UNFOLLOW_2_FROM_1 = reverse('profile_unfollow', args=(USERNAME_1,))
 
 
 class PostsPagesTests(TestCase):
@@ -33,10 +33,10 @@ class PostsPagesTests(TestCase):
         super().setUpClass()
         settings.MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
         cls.user = User.objects.create(
-            username=USERNAME,
+            username=USERNAME_1,
         )
         cls.user_for_subscription = User.objects.create(
-            username=USERNAME2,
+            username=USERNAME_2,
         )
         cls.small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
@@ -52,9 +52,9 @@ class PostsPagesTests(TestCase):
             content_type='image/gif'
         )
         cls.group = Group.objects.create(
-            title=GROUP_TITLE_FOR_POST,
-            slug=GROUP_SLUG_FOR_POST,
-            description=GROUP_DESCRIPTION_FOR_POST,
+            title=GROUP_TITLE,
+            slug=GROUP_SLUG,
+            description=GROUP_DESCRIPTION,
         )
         cls.post = Post.objects.create(
             text=POST_TEXT,
@@ -62,22 +62,22 @@ class PostsPagesTests(TestCase):
             group=cls.group,
             image=cls.uploaded,
         )
-        cls.URL_FOR_POST_EDIT = reverse(
+        cls.URL_POST_EDIT = reverse(
             'post_edit',
-            args=(USERNAME, cls.post.id)
+            args=(USERNAME_1, cls.post.id)
         )
-        cls.URL_FOR_POST = reverse(
+        cls.URL_POST = reverse(
             'post',
-            args=(USERNAME, cls.post.id)
+            args=(USERNAME_1, cls.post.id)
         )
-        cls.URL_FOR_ADD_COMMENT = reverse(
+        cls.URL_ADD_COMMENT = reverse(
             'add_comment',
-            args=(USERNAME, cls.post.id,)
+            args=(USERNAME_1, cls.post.id,)
         )
-        cls.URL_FOR_COMMENT_REDIRECT = (
-            URL_FOR_LOGIN +
+        cls.URL_COMMENT_REDIRECT = (
+            URL_LOGIN +
             '?next=' +
-            cls.URL_FOR_ADD_COMMENT)
+            cls.URL_ADD_COMMENT)
 
     @classmethod
     def tearDownClass(cls):
@@ -97,15 +97,20 @@ class PostsPagesTests(TestCase):
     def test_pages_shows_correct_context(self):
         """Страница сформирована с корректным контекстом
         """
+        Follow.objects.create( 
+            user=self.user_for_subscription, 
+            author=self.user_for_client, 
+        )
         context_url_names = [
-            URL_FOR_INDEX,
-            URL_FOR_GROUP,
-            URL_FOR_PROFILE,
-            self.URL_FOR_POST,
+            [URL_INDEX, self.authorized_client],
+            [URL_GROUP, self.authorized_client],
+            [URL_PROFILE_1, self.authorized_client],
+            [self.URL_POST, self.authorized_client],
+            [URL_FOLLOW_2, self.authorized_client_for_subscription],
         ]
-        for url in context_url_names:
+        for url, client in context_url_names:
             with self.subTest():
-                response = self.authorized_client.get(url)
+                response = client.get(url)
                 if 'page' in response.context:
                     post = response.context['page'][0]
                     self.assertTrue(1 == len(response.context['page']))
@@ -117,8 +122,8 @@ class PostsPagesTests(TestCase):
         """Контекстная переменная author содержит корректные данные
         """
         context_url_names = [
-            URL_FOR_PROFILE,
-            self.URL_FOR_POST,
+            URL_PROFILE_1,
+            self.URL_POST,
         ]
         for url in context_url_names:
             with self.subTest():
@@ -129,74 +134,93 @@ class PostsPagesTests(TestCase):
     def test_index_cache(self):
         """Кэширование страницы выполняется корректно
         """
-        page_before = self.authorized_client.get(URL_FOR_INDEX)
+        page_before = self.authorized_client.get(URL_INDEX)
         content_before = page_before.content
         Post.objects.create(
             text='cache',
             author=self.user,
             group=self.group,
         )
-        cache_page = self.authorized_client.get(URL_FOR_INDEX)
+        cache_page = self.authorized_client.get(URL_INDEX)
         cache_content = cache_page.content
         cache.clear()
-        page_after = self.authorized_client.get(URL_FOR_INDEX)
+        page_after = self.authorized_client.get(URL_INDEX)
         content_after = page_after.content
         self.assertTrue(content_before == cache_content)
         self.assertFalse(content_before == content_after)
 
     def test_subscription_works_correctly(self):
-        """Новая запись пользователя появляется в ленте тех, кто на него
-        подписан и не появляется в ленте тех, кто не подписан на него.
+        """Новая запись пользователя не появляется в ленте тех, кто не
+        подписан на него.
         """
-        Follow.objects.create(
-            user=self.user_for_subscription,
-            author=self.user_for_client,
+        Follow.objects.create( 
+            user=self.user_for_subscription, 
+            author=self.user_for_client, 
         )
-        response = self.authorized_client_for_subscription.get(URL_FOR_FOLLOW)
-        response_for_client = self.authorized_client.get(URL_FOR_FOLLOW)
-        context = response.context['page']
+        response_for_client = self.authorized_client.get(URL_FOLLOW_2)
         context_for_client = response_for_client.context['page']
-        self.assertIn(self.post, context)
         self.assertNotIn(self.post, context_for_client)
 
     def test_subscription_management_is_correct(self):
         """Авторизованный пользователь может подписываться на других
-        пользователей и удалять их из подписок
+        пользователей
         """
-        response_for_follow = self.authorized_client_for_subscription.post(
-            URL_FOR_PROFILE_FOLLOW
+        response_for_follow = self.authorized_client_for_subscription.get(
+            URL_PROFILE_FOLLOW_2_TO_1
         )
         follow = Follow.objects.first()
-        response_for_unfollow = self.authorized_client_for_subscription.post(
-            URL_FOR_PROFILE_UNFOLLOW
+        self.assertEqual(follow.author, self.user_for_client)
+        self.assertEqual(follow.user, self.user_for_subscription)
+        self.assertRedirects(response_for_follow, URL_PROFILE_1)
+
+    def test_subscription_management_is_correct(self):
+        """Авторизованный пользователь может удалять других пользователей из
+        подписок
+        """
+        Follow.objects.create( 
+            user=self.user_for_subscription, 
+            author=self.user_for_client, 
+        )
+        response_for_unfollow = self.authorized_client_for_subscription.get(
+            URL_PROFILE_UNFOLLOW_2_FROM_1
         )
         unfollow = Follow.objects.first()
-        self.assertEqual(follow.author, self.user_for_client)
         self.assertIsNone(unfollow)
-        self.assertRedirects(response_for_follow, URL_FOR_PROFILE)
-        self.assertRedirects(response_for_unfollow, URL_FOR_PROFILE)
+        self.assertRedirects(response_for_unfollow, URL_PROFILE_1)
 
     def test_guest_cannot_comment(self):
-        """Только авторизированный пользователь может комментировать посты
+        """Авторизированный пользователь может комментировать посты
         """
+        comments_count = Comment.objects.count()
         form_data = {
             'text': 'comment',
         }
         response_for_client = self.authorized_client_for_subscription.post(
-            self.URL_FOR_ADD_COMMENT,
+            self.URL_ADD_COMMENT,
             data=form_data,
             follow=True,
         )
         comments_count_after_authorized_client = Comment.objects.count()
         comment = Comment.objects.first()
+        self.assertEqual(comment.text, form_data['text'])
+        self.assertTrue(comments_count_after_authorized_client ==
+                        comments_count + 1)
+        self.assertRedirects(response_for_client, self.URL_POST)
+
+    def test_guest_cannot_comment(self):
+        """Неавторизированный пользователь не может комментировать посты
+        """
+        comments_count = Comment.objects.count()
+        form_data = {
+            'text': 'comment',
+        }
+        comment = Comment.objects.first()
         response_for_guest = self.guest_client.post(
-            self.URL_FOR_ADD_COMMENT,
+            self.URL_ADD_COMMENT,
             data=form_data,
             follow=True,
         )
         comments_count_after_guest_client = Comment.objects.count()
-        self.assertEqual(comment.text, form_data['text'])
-        self.assertTrue(comments_count_after_authorized_client ==
+        self.assertTrue(comments_count ==
                         comments_count_after_guest_client)
-        self.assertRedirects(response_for_client, self.URL_FOR_POST)
-        self.assertRedirects(response_for_guest, self.URL_FOR_COMMENT_REDIRECT)
+        self.assertRedirects(response_for_guest, self.URL_COMMENT_REDIRECT)

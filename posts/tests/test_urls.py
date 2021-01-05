@@ -2,23 +2,25 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from posts.models import Group, Post, User
-from posts.tests.test_forms import URL_FOR_LOGIN
+from posts.tests.test_forms import URL_LOGIN
 
-USERNAME = 'testuser'
-USERNAME2 = 'testuser2'
-USERNAME3 = 'otheruser'
-GROUP_TITLE_FOR_POST = 'test title post'
-GROUP_SLUG_FOR_POST = 'test_slug_post'
-GROUP_SLUG_FOR_STATUS_404 = 'test_slug_pos'
-GROUP_DESCRIPTION_FOR_POST = 'test description post'
+USERNAME_1 = 'testuser'
+USERNAME_2 = 'testuser2'
+USERNAME_3 = 'otheruser'
+GROUP_TITLE = 'test title post'
+GROUP_SLUG = 'test_slug_post'
+GROUP_SLUG_STATUS_404 = 'test_slug_pos'
+GROUP_DESCRIPTION = 'test description post'
 POST_TEXT = 'test text'
 
-URL_FOR_INDEX = reverse('index')
-URL_FOR_GROUP = reverse('group', args=(GROUP_SLUG_FOR_POST,))
-URL_FOR_STATUS_404 = reverse('group', args=(GROUP_SLUG_FOR_STATUS_404,))
-URL_FOR_NEW_POST = reverse('new_post')
-URL_FOR_PROFILE = reverse('profile', args=(USERNAME,))
-URL_FOR_NEW_POST_REDIRECT = (URL_FOR_LOGIN + '?next=' + URL_FOR_NEW_POST)
+URL_INDEX = reverse('index')
+URL_GROUP = reverse('group', args=(GROUP_SLUG,))
+URL_STATUS_404 = reverse('group', args=(GROUP_SLUG_STATUS_404,))
+URL_NEW_POST = reverse('new_post')
+URL_FOLLOW = reverse('follow_index')
+URL_PROFILE_1 = reverse('profile', args=(USERNAME_1,))
+URL_NEW_POST_REDIRECT = (URL_LOGIN + '?next=' + URL_NEW_POST)
+URL_FOLLOW_REDIRECT = (URL_LOGIN + '?next=' + URL_FOLLOW)
 
 
 class StaticURLTests(TestCase):
@@ -26,54 +28,50 @@ class StaticURLTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create(
-            username=USERNAME,
+            username=USERNAME_1,
         )
         cls.group = Group.objects.create(
-            title=GROUP_TITLE_FOR_POST,
-            slug=GROUP_SLUG_FOR_POST,
-            description=GROUP_DESCRIPTION_FOR_POST,
+            title=GROUP_TITLE,
+            slug=GROUP_SLUG,
+            description=GROUP_DESCRIPTION,
         )
-        cls.post1 = Post.objects.create(
+        cls.post_1 = Post.objects.create(
             text=POST_TEXT,
             author=cls.user,
             group=cls.group,
         )
-        cls.post2 = Post.objects.create(
+        cls.post_2 = Post.objects.create(
             text=POST_TEXT,
-            author=User.objects.create(username=USERNAME2),
+            author=User.objects.create(username=USERNAME_2),
             group=cls.group,
         )
-        cls.URL_FOR_POST_EDIT = reverse(
+        cls.URL_POST_EDIT_1 = reverse(
             'post_edit',
-            args=(USERNAME, cls.post1.id)
+            args=(USERNAME_1, cls.post_1.id)
         )
-        cls.URL_FOR_POST = reverse(
+        cls.URL_POST_1 = reverse(
             'post',
-            args=(USERNAME, cls.post1.id)
+            args=(USERNAME_1, cls.post_1.id)
         )
-        cls.URL_FOR_OTHER_USER = reverse(
-            'post_edit',
-            args=(USERNAME3, cls.post1.id)
-        )
-        cls.URL_FOR_POST_REDIRECT = reverse('post', args=(
-            USERNAME2,
-            cls.post2.id
+        cls.URL_POST_REDIRECT_2 = reverse('post', args=(
+            USERNAME_2,
+            cls.post_2.id
             )
         )
-        cls.URL_FOR_POST_EDIT_REDIRECT = reverse(
+        cls.URL_POST_EDIT_REDIRECT_2 = reverse(
             'post_edit', args=(
-                USERNAME2,
-                cls.post2.id
+                USERNAME_2,
+                cls.post_2.id
             )
         )
-        cls.URL_FOR_OTHER_USER = reverse(
+        cls.URL_OTHER_USER_3 = reverse(
             'post_edit',
-            args=(USERNAME3, cls.post1.id)
+            args=(USERNAME_3, cls.post_1.id)
         )
-        cls.URL_FOR_OTHER_USER_REDIRECT = (
-            URL_FOR_LOGIN +
+        cls.URL_OTHER_USER_REDIRECT_3 = (
+            URL_LOGIN +
             '?next=' +
-            cls.URL_FOR_OTHER_USER
+            cls.URL_OTHER_USER_3
         )
 
     def setUp(self):
@@ -86,20 +84,22 @@ class StaticURLTests(TestCase):
         """Страница по заданному адресу возвращает ожидаемый status_code
         """
         expected_status_code = [
-            [URL_FOR_INDEX, 200, self.guest_client],
-            [URL_FOR_GROUP, 200, self.guest_client],
-            [URL_FOR_NEW_POST, 302, self.guest_client],
-            [URL_FOR_PROFILE, 200, self.guest_client],
-            [self.URL_FOR_POST, 200, self.guest_client],
-            [self.URL_FOR_POST_EDIT, 302, self.guest_client],
-            [URL_FOR_STATUS_404, 404, self.guest_client],
-            [URL_FOR_INDEX, 200, self.authorized_client],
-            [URL_FOR_GROUP, 200, self.authorized_client],
-            [URL_FOR_NEW_POST, 200, self.authorized_client],
-            [URL_FOR_PROFILE, 200, self.authorized_client],
-            [self.URL_FOR_POST, 200, self.authorized_client],
-            [self.URL_FOR_POST_EDIT, 200, self.authorized_client],
-            [URL_FOR_STATUS_404, 404, self.authorized_client],
+            [URL_INDEX, 200, self.guest_client],
+            [URL_GROUP, 200, self.guest_client],
+            [URL_NEW_POST, 302, self.guest_client],
+            [URL_PROFILE_1, 200, self.guest_client],
+            [URL_FOLLOW, 302, self.guest_client],
+            [self.URL_POST_1, 200, self.guest_client],
+            [self.URL_POST_EDIT_1, 302, self.guest_client],
+            [URL_STATUS_404, 404, self.guest_client],
+            [URL_INDEX, 200, self.authorized_client],
+            [URL_GROUP, 200, self.authorized_client],
+            [URL_NEW_POST, 200, self.authorized_client],
+            [URL_PROFILE_1, 200, self.authorized_client],
+            [URL_FOLLOW, 200, self.authorized_client],
+            [self.URL_POST_1, 200, self.authorized_client],
+            [self.URL_POST_EDIT_1, 200, self.authorized_client],
+            [URL_STATUS_404, 404, self.authorized_client],
         ]
         for url, status_code, client in expected_status_code:
             with self.subTest():
@@ -110,12 +110,13 @@ class StaticURLTests(TestCase):
         """URL-адрес использует соответствующий шаблон
         """
         templates_url_names = {
-            URL_FOR_INDEX: 'index.html',
-            URL_FOR_GROUP: 'group.html',
-            URL_FOR_NEW_POST: 'new.html',
-            self.URL_FOR_POST_EDIT: 'new.html',
-            self.URL_FOR_POST: 'post.html',
-            URL_FOR_PROFILE: 'profile.html',
+            URL_INDEX: 'index.html',
+            URL_GROUP: 'group.html',
+            URL_NEW_POST: 'new.html',
+            self.URL_POST_EDIT_1: 'new.html',
+            self.URL_POST_1: 'post.html',
+            URL_PROFILE_1: 'profile.html',
+            URL_FOLLOW: 'follow.html'
         }
         for url, template in templates_url_names.items():
             with self.subTest():
@@ -128,19 +129,24 @@ class StaticURLTests(TestCase):
         """
         expected_redirect = [
             [
-                URL_FOR_NEW_POST,
-                URL_FOR_NEW_POST_REDIRECT,
+                URL_NEW_POST,
+                URL_NEW_POST_REDIRECT,
                 self.guest_client
             ],
             [
-                self.URL_FOR_OTHER_USER,
-                self.URL_FOR_OTHER_USER_REDIRECT,
+                self.URL_OTHER_USER_3,
+                self.URL_OTHER_USER_REDIRECT_3,
                 self.guest_client,
             ],
             [
-                self.URL_FOR_POST_EDIT_REDIRECT,
-                self.URL_FOR_POST_REDIRECT,
+                self.URL_POST_EDIT_REDIRECT_2,
+                self.URL_POST_REDIRECT_2,
                 self.authorized_client,
+            ],
+            [
+                URL_FOLLOW,
+                URL_FOLLOW_REDIRECT,
+                self.guest_client
             ],
         ]
         for url, redirect, client in expected_redirect:

@@ -15,11 +15,11 @@ GROUP_TITLE = 'test title post'
 GROUP_DESCRIPTION = 'test description post'
 POST_TEXT = 'test text'
 
-URL_FOR_LOGIN = reverse('login')
-URL_FOR_NEW_POST = reverse('new_post')
-URL_FOR_INDEX = reverse('index')
-URL_FOR_GROUP = reverse('group', args=(GROUP_SLUG,))
-URL_FOR_NEW_POST_REDIRECT = (URL_FOR_LOGIN + '?next=' + URL_FOR_NEW_POST)
+URL_LOGIN = reverse('login')
+URL_NEW_POST = reverse('new_post')
+URL_INDEX = reverse('index')
+URL_GROUP = reverse('group', args=(GROUP_SLUG,))
+URL_NEW_POST_REDIRECT = (URL_LOGIN + '?next=' + URL_NEW_POST)
 
 
 class PostCreateFormTests(TestCase):
@@ -47,18 +47,18 @@ class PostCreateFormTests(TestCase):
             author=self.user,
             group=self.group,
         )
-        self.URL_FOR_POST_EDIT = reverse(
+        self.URL_POST_EDIT = reverse(
             'post_edit',
             args=(
                 USERNAME,
                 self.post.id
             )
         )
-        self.URL_FOR_GUEST_POST_EDIT = (
-            URL_FOR_LOGIN +
+        self.URL_GUEST_POST_EDIT = (
+            URL_LOGIN +
             '?next=' +
-            self.URL_FOR_POST_EDIT)
-        self.URL_FOR_POST = reverse('post', args=(USERNAME, self.post.id))
+            self.URL_POST_EDIT)
+        self.URL_POST = reverse('post', args=(USERNAME, self.post.id))
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
@@ -93,12 +93,12 @@ class PostCreateFormTests(TestCase):
             'image': uploaded,
         }
         response = self.authorized_client.post(
-            URL_FOR_NEW_POST,
+            URL_NEW_POST,
             data=form_data,
             follow=True,
         )
         created_post = response.context['page'][0]
-        self.assertRedirects(response, URL_FOR_INDEX)
+        self.assertRedirects(response, URL_INDEX)
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertEqual(created_post.text, form_data['text'])
         self.assertEqual(created_post.group, group_for_create)
@@ -108,15 +108,15 @@ class PostCreateFormTests(TestCase):
     def test_post_created_in_expected_group(self):
         """Пост не попадает на чужую групп-ленту
         """
-        SLUG_FOR_TEST_GROUP = 'slug'
-        URL_FOR_TEST_GROUP = reverse('group', args=(SLUG_FOR_TEST_GROUP,))
+        SLUG_TEST_GROUP = 'slug'
+        URL_TEST_GROUP = reverse('group', args=(SLUG_TEST_GROUP,))
         Group.objects.create(
             title='title',
-            slug=SLUG_FOR_TEST_GROUP,
+            slug=SLUG_TEST_GROUP,
             description='description',
         )
         response_for_test_group = self.authorized_client.get(
-            URL_FOR_TEST_GROUP
+            URL_TEST_GROUP
         )
         context_for_test_group = response_for_test_group.context['page']
         self.assertNotIn(self.post, context_for_test_group)
@@ -135,12 +135,12 @@ class PostCreateFormTests(TestCase):
             'group': group_for_anonymous.id,
         }
         response = self.guest_client.post(
-            URL_FOR_NEW_POST,
+            URL_NEW_POST,
             data=form_data,
             follow=True,
         )
         posts_count_after_try = Post.objects.count()
-        self.assertRedirects(response, URL_FOR_NEW_POST_REDIRECT)
+        self.assertRedirects(response, URL_NEW_POST_REDIRECT)
         self.assertEqual(posts_count_before_try, posts_count_after_try)
 
     def test_edit_post_by_anonymous(self):
@@ -151,12 +151,12 @@ class PostCreateFormTests(TestCase):
             'group': self.group.id,
         }
         response = self.guest_client.post(
-            self.URL_FOR_POST_EDIT,
+            self.URL_POST_EDIT,
             data=form_data,
             follow=True,
         )
         post = Post.objects.first()
-        self.assertRedirects(response, self.URL_FOR_GUEST_POST_EDIT)
+        self.assertRedirects(response, self.URL_GUEST_POST_EDIT)
         self.assertEqual(self.post, post)
 
     def test_change_post(self):
@@ -173,17 +173,18 @@ class PostCreateFormTests(TestCase):
             'group': group_for_edit.id,
         }
         response = self.authorized_client.post(
-            self.URL_FOR_POST_EDIT,
+            self.URL_POST_EDIT,
             data=form_data,
             follow=True,
         )
         post = response.context['post']
-        self.assertRedirects(response, self.URL_FOR_POST)
+        self.assertRedirects(response, self.URL_POST)
         self.assertEqual(post.text, form_data['text'])
         self.assertEqual(post.group, group_for_edit)
 
     def test_page_new_post_shows_correct_fields(self):
-        """Шаблон new.html сформирован с правильными типами полей формы
+        """Страница создания нового поста сформирована с правильными типами
+        полей формы
         """
         response = self.authorized_client.get(reverse('new_post'))
         form_fields = {
@@ -204,7 +205,7 @@ class PostCreateFormTests(TestCase):
             'group': forms.fields.ChoiceField,
         }
         response = self.authorized_client.get(
-            self.URL_FOR_POST_EDIT
+            self.URL_POST_EDIT
         )
         for value, expected in form_fields.items():
             with self.subTest(value=value):
