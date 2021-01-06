@@ -3,11 +3,11 @@
 {% block header %}Интересные записи{% endblock %}
 {% block content %}
     <div class="container">
-        {% include "menu.html" with follow=True %}
+        {% include "menu.html" with show_follow=True %}
         {% load cache %}
         {% cache 20 index page %}
             {% for post in page %}
-                <p>{% include "post_item.html" with post=post group=True %}</p>
+                <p>{% include "post_item.html" with post=post %}</p>
             {% endfor %}
         {% endcache %}
     </div>

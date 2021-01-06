@@ -12,8 +12,8 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
                 <div class="h6 text-muted">
-                    {% if author.follower.count %}Подписчиков: {{ author.follower.count }}{% else %}Подписчиков: 0{% endif %} <br />
-                    {% if author.following.count %}Подписан: {{ author.following.count }}{% else %}Подписан: 0{% endif %}
+                    Подписчиков: {{ author.follower.count }} <br />
+                    Подписан: {{ author.following.count }}
                 </div>
             </li>
             <li class="list-group-item">

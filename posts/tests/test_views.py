@@ -168,12 +168,14 @@ class PostsPagesTests(TestCase):
         response_for_follow = self.authorized_client_for_subscription.get(
             URL_PROFILE_FOLLOW_2_TO_1
         )
-        follow = Follow.objects.first()
-        self.assertEqual(follow.author, self.user_for_client)
-        self.assertEqual(follow.user, self.user_for_subscription)
+        follow = Follow.objects.filter(
+            user=self.user_for_subscription,
+            author=self.user_for_client,
+        ).exists()
+        self.assertTrue(follow==True)
         self.assertRedirects(response_for_follow, URL_PROFILE_1)
 
-    def test_subscription_management_is_correct(self):
+    def test_unsubscribing_works_correctly(self):
         """Авторизованный пользователь может удалять других пользователей из
         подписок
         """
@@ -184,13 +186,18 @@ class PostsPagesTests(TestCase):
         response_for_unfollow = self.authorized_client_for_subscription.get(
             URL_PROFILE_UNFOLLOW_2_FROM_1
         )
-        unfollow = Follow.objects.first()
-        self.assertIsNone(unfollow)
+        unfollow = Follow.objects.filter(
+            user=self.user_for_subscription,
+            author=self.user_for_client,
+        ).exists()
+        self.assertFalse(unfollow==True)
         self.assertRedirects(response_for_unfollow, URL_PROFILE_1)
 
-    def test_guest_cannot_comment(self):
+    def test_authorized_client_can_comment(self):
         """Авторизированный пользователь может комментировать посты
         """
+        comments = Comment.objects.all()
+        comments.delete()
         comments_count = Comment.objects.count()
         form_data = {
             'text': 'comment',
@@ -203,6 +210,8 @@ class PostsPagesTests(TestCase):
         comments_count_after_authorized_client = Comment.objects.count()
         comment = Comment.objects.first()
         self.assertEqual(comment.text, form_data['text'])
+        self.assertEqual(comment.author, self.user_for_subscription)
+        self.assertEqual(comment.post, self.post)
         self.assertTrue(comments_count_after_authorized_client ==
                         comments_count + 1)
         self.assertRedirects(response_for_client, self.URL_POST)
@@ -214,7 +223,6 @@ class PostsPagesTests(TestCase):
         form_data = {
             'text': 'comment',
         }
-        comment = Comment.objects.first()
         response_for_guest = self.guest_client.post(
             self.URL_ADD_COMMENT,
             data=form_data,

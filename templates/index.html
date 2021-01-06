@@ -5,11 +5,11 @@
     {% load thumbnail %}
     {% load cache %}
 
-    {% include "menu.html" with index=True %}
+    {% include "menu.html" with show_index=True %}
 
     {% cache 20 index page %}
         {% for post in page %}
-            {% include "post_item.html" with post=post group=True %}
+            {% include "post_item.html" with post=post %}
         {% endfor %}
     {% endcache %}
 
