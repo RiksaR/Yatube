@@ -11,6 +11,7 @@ media/
 .htmlcov
 htmlcov/
 .env
+sent_emails/
 
 __pycache__/
 *.py[cod]
