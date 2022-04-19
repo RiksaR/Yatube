@@ -209,6 +209,7 @@ class PostsPagesTests(TestCase):
         )
         comments_count_after_authorized_client = Comment.objects.count()
         comment = Comment.objects.first()
+        self.assertTrue(1 == comments_count_after_authorized_client)
         self.assertEqual(comment.text, form_data['text'])
         self.assertEqual(comment.author, self.user_for_subscription)
         self.assertEqual(comment.post, self.post)

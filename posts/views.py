@@ -82,7 +82,6 @@ def post_view(request, username, post_id):
         id=post_id,
         author__username=username,
     )
-    author = post.author
     comments = post.comments.all()
     form = CommentForm()
     return render(
@@ -92,7 +91,7 @@ def post_view(request, username, post_id):
             'post': post,
             'form': form,
             'comments': comments,
-            'author': author,
+            'author': post.author,
         }
     )
 

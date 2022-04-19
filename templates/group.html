@@ -10,7 +10,7 @@
 
 {% block content %}
     {% for post in page %}
-        {% include "post_item.html" with post=post %}
+        {% include "post_item.html" with post=post show_group=group %}
     {% endfor %}
 
     {% if page.has_other_pages %}

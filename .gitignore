@@ -10,6 +10,7 @@ media/
 .media/
 .htmlcov
 htmlcov/
+.env
 
 __pycache__/
 *.py[cod]
