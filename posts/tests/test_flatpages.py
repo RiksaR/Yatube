@@ -1,7 +1,7 @@
 from django.contrib.flatpages.models import FlatPage
+from django.contrib.sites.models import Site
 from django.test import Client, TestCase
 from django.urls import reverse
-from django.contrib.sites.models import Site
 
 ABOUT_AUTHOR = reverse('about_author')
 ABOUT_SPEC = reverse('about_spec')

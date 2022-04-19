@@ -1,6 +1,5 @@
 from django.test import TestCase
-
-from posts.models import Post, Group, User
+from posts.models import Group, Post, User
 
 USERNAME = 'testuser'
 GROUP_TITLE_FOR_POST = 'test title post'
